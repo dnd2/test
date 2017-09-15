@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        table,
+        tr,
+        td {
+            box-sizing: border-box
+        }
+
+        .datagrid-box {
+            width: 700px;
+            height: 222px;
+            background-color: #ffffff;
+            color: #333;
+            font-size: 12px;
+            border-color: #D4D4D4;
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .datagrid-header {
+            overflow: hidden;
+            background-color: #F2F2F2;
+            background: -webkit-linear-gradient(top, #ffffff 0, #F2F2F2 100%);
+            background: -moz-linear-gradient(top, #ffffff 0, #F2F2F2 100%);
+            background: -o-linear-gradient(top, #ffffff 0, #F2F2F2 100%);
+            background: linear-gradient(to bottom, #ffffff 0, #F2F2F2 100%);
+            background-repeat: repeat-x;
+            filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#ffffff, endColorstr=#F2F2F2, GradientType=0);
+            cursor: default;
+            border-width: 0 0 1px 0;
+            border-style: solid;
+            border-bottom: 0
+        }
+
+        .datagrid-header-tbl,
+        .datagrid-body-tbl {
+            color: #000;
+            border-collapse: separate;
+            border-spacing: 0
+        }
+
+        .datagrid-header-row {
+            height: 25px
+        }
+
+        .datagrid-header td,
+        .datagrid-body td {
+            margin: 0;
+            padding: 0;
+            height: 25px;
+            border-width: 0 1px 1px 0;
+            border-style: dotted;
+            border-color: #ccc
+        }
+
+        .datagrid-cell {
+            margin: 0;
+            padding: 0 4px;
+            white-space: nowrap;
+            word-wrap: normal;
+            overflow: hidden;
+            height: 18px;
+            line-height: 18px;
+            font-size: 12px;
+        }
+
+        .datagrid-cell span {
+            font-size: 12px
+        }
+
+        .datagrid-row-over {
+            background: #e6e6e6;
+            color: #0c89cf;
+            cursor: default;
+        }
+        /* Custom width of the cell */
+
+        .cell-itemid {
+            width: 79px
+        }
+
+        .cell-productname {
+            width: 99px
+        }
+
+        .cell-listprice {
+            width: 79px
+        }
+
+        .cell-unitcost {
+            width: 79px
+        }
+
+        .cell-attribute {
+            width: 249px
+        }
+
+        .cell-status {
+            width: 59px
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 
+        1. 实现基本的datagrid HTML结构 
+            - 头部标题栏
+            - 左侧索引序列(optional)
+            - 表格体
+            - 表格底部 (包含分页条，页数，跳转)
+        2. 表格数据的绑定
+        3. 表格列排序(前端和后端排序)
+        4. 表格列拖动
+        5. 表格行选择且高亮 (包含多选)
+        6. 定义datagrid类，实现封装，模板html尽量与js分离，扩展方式以对外接口方式引入 
+    -->
+    <div class="datagrid-box">
+        <div class="datagrid-header">
+            <table class="datagrid-header-tbl">
+                <tbody>
+                    <tr class="datagrid-header-row">
+                        <td>
+                            <div class="datagrid-cell cell-itemid">
+                                <span>Item ID</span>
+                                <span class="datagrid-sort-icon"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-productname">
+                                <span>Product Name</span>
+                                <span class="datagrid-sort-icon"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-listprice">
+                                <span>List Price</span>
+                                <span class="datagrid-sort-icon"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-unitcost">
+                                <span>Unit Cost</span>
+                                <span class="datagrid-sort-icon"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-attribute">
+                                <span>Attribute</span>
+                                <span class="datagrid-sort-icon"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-status">
+                                <span>Status</span>
+                                <span class="datagrid-sort-icon"></span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="datagrid-body">
+            <table class="datagrid-body-tbl">
+                <tbody>
+                    <tr class="datagrid-row">
+                        <td>
+                            <div class="datagrid-cell cell-itemid">EST-1</div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-productname">FI-SW-01</div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-listprice">36.5</div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-unitcost">10</div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-attribute">Large</div>
+                        </td>
+                        <td>
+                            <div class="datagrid-cell cell-status">P</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        'use strict';
+        var Class = function (parent) {
+            var klass = function () {
+                this.init.apply(this, arguments);
+            }
+
+            if (parent) {
+                var subclass = function () { };
+                subclass.prototype = parent.prototype;
+                klass.prototype = new subclass;
+            }
+
+            klass.prototype.init = function () { };
+
+            klass.fn = klass.prototype;
+            klass.fn.parent = klass;
+            klass._super = klass.__proto__;
+
+            klass.extend = function (obj) {
+                var extended = obj.extended;
+                for (var i in obj) {
+                    klass[i] = obj[i];
+                }
+
+                if (extended) extended(klass);
+            }
+
+            klass.include = function (obj) {
+                var included = obj.included;
+
+                for (var i in obj) {
+                    klass.fn[i] = obj[i];
+                }
+
+                if (included) included(klass);
+
+                return klass;
+            }
+            // Adding a proxy function
+            klass.proxy = function (func) {
+                var self = this;
+                return (function () {
+                    return func.apply(self, arguments);
+                });
+            }
+            // Add the function on instance too
+            klass.fn.proxy = klass.proxy;
+
+            return klass;
+        }
+
+        var DataGrid = (function (window, undefined) {
+            var grid = function (name, config) {
+                this.name = name || "";
+                this.columns = [];       // 列
+                this.sortDescending = false; // 默认按升序排列
+                this.lastSelectedRowIndex = -1; // 上一次选中的行索引
+                this.data = [];          // 载入数据
+                this.containerId = "";   // Grid ID
+                this.className = "";     // 样式名称
+                this.grid  = null;        // 保存初始化时创建的grid结构
+                this.width  = 0;
+                this.height = 0;
+
+                this.enableSort = false; // 是否可排序
+                this.serverSide = false; // 是否从服务器端获取数据
+                this.doubleClick = false; // 使用双击方式编辑cell
+
+                this.isPaging = true;  // 开启分页
+                this.page = 1;     // 第几页
+                this.pageSize = 0;     // 分页，一页记录数
+                this.pageCount = 0;     // 分页，总页数
+                this.totalRows = 0;     // 分页，总记录数
+
+                if (typeof config !== 'undefined') {
+                    for (let p in config) {
+                        this[p] = config[p];
+                    }
+                }
+            };
+
+            grid.prototype = {
+                /**
+                 * 加载数据
+                 */
+                load: function (oData) {
+                    this.processJson(oData);
+                },
+
+                /**
+                 * 加载JSON数据
+                 * @private
+                 * @param {Object|String} jsonData
+                 */
+                processJson: function (jsonData) {
+                    let type = typeof jsonData;
+
+                    if (type === 'string') {
+                        jsonData = eval("(" + jsonData + ")");
+                    }
+
+                    if (!jsonData || type !== 'object') {
+                        return false;
+                    }
+
+                    this.data.length = 0;
+                    /**
+                     * Getting the data of the column
+                     * {id: 1, values: {"country":"uk","age":33,"name":"Duke"}}
+                     */
+                    if (jsonData.metadata) {
+                        let len = jsonData.metadata.length, i;
+                        this.columns = [];
+
+                        for (i = 0; i < len; i++) {
+                            let colData = jsonData.metadata[i];
+
+                            this.columns.push(new DataGridColumn({
+                                name: colData.name,
+                                label: colData.label,
+                                dataType: (colData.datatype || "string"),
+                                editable: (colData.editable || false),
+                                cellWidth: ( colData.width || 0 ),
+                                headerRenderer: (colData.header_renderer || null),
+                                cellRenderer: (colData.renderer || null)
+                            }));
+                        }
+                    }
+
+                    if (jsonData.data) {
+                        let rowCount = jsonData.data.length,
+                            i,
+                            cellValues = {},
+                            columnCount = this.columns.length,
+                            defaultRowId = 1;
+
+                        for (i = 0; i < rowCount; i++) {
+                            let row = jsonData.data[i],
+                                rowValueCount = row.values.length,
+                                rowValue = {};
+
+                            if (!row.values) {
+                                continue;
+                            }
+
+                            rowValue.visible = true;
+                            rowValue.index = i;
+                            rowValue.id = row.id != null ? row.id : ++defaultRowId;
+
+                            for (let attrName in row) {
+                                if (row[attrName] !== 'id' || row[attrName] !== 'values') {
+                                    rowValue[attrName] = row[attrName];
+                                }
+                            }
+
+                            this.data.push(rowValue);
+                        }
+                    }
+
+                    this.initColParams();
+
+                    console.log(this.data);
+                    console.log(this.columns)
+
+                    return true;
+                },
+
+                /**
+                 * 创建grid头部列结构渲染
+                 * @private
+                 * @param {Object} column
+                 */
+                createHeaderRenderer: function (column) {
+                    column.headerRenderer = (column.dataType !== 'html') ?
+                        new CellHeaderRender(column) : new CellRender(column);
+                },
+
+                /**
+                 * 创建数据单元结构渲染
+                 * @private
+                 * @param  {Object} column
+                 * @return {Boolean}
+                 */
+                createCellRenderer: function (column) {
+                    /* if ( ! column || column.contructor !== CellRender ) {
+                        return false;
+                    } */
+
+                    column.cellRenderer = new CellRender( column );
+                    return true;
+                },
+
+                /**
+                 * 初始化column参数
+                 */
+                initColParams: function () {
+                    var len = this.columns.length,
+                        col;
+
+                    for (col = 0; col < len; col++) {
+                        var column = this.columns[col];
+
+                        column.columnIndex = col;
+
+                        if ( ! column.renderer ) {
+                            this.createHeaderRenderer( column );
+                        }
+
+                        if ( ! column.cellRenderer ) {
+                            this.createCellRenderer( column );
+                        }
+                    }
+                },
+
+                /**
+                 * 渲染DataGrid，并初始化结构和数据
+                 * 
+                 * @param {String} containerId  为Grid指定一个ID名称
+                 * @param {String} className    为Grid指定一个样式名
+                 */
+                renderGrid: function (containerId, className) {
+                    this.containerId = containerId || "";
+                    this.className = className || "";
+
+                    // Create the structure of the DataGrid
+                    var fragment = document.createDocumentFragment(),
+                        wraper   = document.createElement('div'),
+                        header   = document.createElement('div'),
+                        headerTb = document.createElement('table'),
+                        headerBo = document.createElement('tbody'),
+                        colLen   = this.columns.length, i;
+
+                    wraper.id = this.containerId;    
+                    wraper.className = "datagrid-box";
+                    header.className = "datagrid-header";
+                    headerTb.className = "datagrid-header-tbl";
+                    headerTb.appendChild(headerBo);
+
+                    if ( this.width > 0 ) {
+                        wraper.style.width = this.width + "px";
+                    }
+
+                    if ( this.height > 0 ) {
+                        wraper.style.height = this.height + "px";
+                    }
+
+                    // Create the header of the grid
+                    let tr = headerBo.insertRow(0);
+                    tr.className = "datagrid-header-row";
+
+                    for (i = 0; i < colLen; i++) {
+                        let td = tr.insertCell(i);
+                        this.columns[i].headerRenderer.render( td, this.columns[i].name );
+                        tr.appendChild( td );
+                    }
+
+                    headerBo.appendChild( tr );
+                    header.appendChild( headerTb );
+                    wraper.appendChild( header );
+                    fragment.appendChild( wraper );
+
+                    // Data
+                    let body = document.createElement( 'div' ),
+                        bodyTbl = document.createElement( 'table' ),
+                        bodyBo  = document.createElement( 'tbody' ),
+                        rowLen = this.data.length,
+                        j,
+                        dataRow;
+
+                    body.className    = "datagrid-body";   
+                    bodyTbl.className = "datagrid-body-tbl"; 
+
+                    for ( j = 0; j < rowLen; j++ ) {
+                        dataRow = bodyBo.insertRow( j );
+                        dataRow.className = "datagrid-row";
+
+                        for ( i = 0; i < colLen; i++ ) {
+                            let cell = dataRow.insertCell( i );
+                       
+                            if ( this.columns[i].cellRenderer ) {  
+                                this.columns[i].cellRenderer.render( cell, this.data[j].values[this.columns[i].name], j, i );
+                            }
+                        }
+                    }    
+                    
+                    bodyTbl.appendChild( bodyBo );
+                    body.appendChild( bodyTbl );
+                    fragment.querySelector( '.datagrid-box' ).appendChild( body ); 
+                    document.body.appendChild( fragment );
+                }
+            };
+
+            return grid;
+        }).call(window);
+        /**
+         *  {title: "Item ID", field: "id", isSort: false, sortType: 1, cellWidth: 80, className: "cell-1", index: false, render: "" }
+         */
+
+        var DataGridColumn = (function () {
+            var col = function (config) {
+                var props = {
+                    name: "",             // 列名   
+                    label: "",            // 列对应字段   
+                    dataType: "string",   // 字段类型
+                    cellWidth: 0,         // 列宽度   
+                    columnIndex: -1,      // 列的索引值
+                    headerRenderer: null, // 列头部渲染对象
+                    cellRenderer: null,   // 渲染列的对应对象
+                    editable: false       // 可编辑
+                };
+
+                if (!config) {
+                    for (var p in props) {
+                        this[p] = props[p];
+                    }
+                } else {
+                    for (var p in props) {
+                        this[p] = typeof config[p] === 'undefined' ?
+                            props[p] : config[p];
+                    }
+                }
+            };
+
+            col.prototype = {
+                /**
+                 * Method to get value according to the key
+                 * 
+                 * @param  {String} key The column key
+                 * @return {String}     The value of the specific key
+                 */
+                getColumnValue: function (key) {
+                    return this[key] || null;
+                }
+            };
+
+            return col;
+        })();
+
+        /**
+         * The base class of the renderer
+         * 
+         * @constructor
+         * @class Base class for all cell renderers
+         */
+        var CellRender = (function () {
+            var renderer = function (column) {
+                this.column = column;
+                this.fragment = document.createDocumentFragment();
+                this.init.call(this, column);
+            };
+
+            renderer.prototype = {
+                init: function (col) {
+                    var div = document.createElement('div');
+                    div.className = "datagrid-cell cell-" + this.column.name;
+                    div.innerHTML = col.value || "";
+                    this.fragment.appendChild(div);
+                },
+
+                render: function (el, value, rowIndex, colIndex) {
+                    if (!el) return false;
+
+                    if ( ! this.fragment.firstElementChild ) {
+                        var div = document.createElement('div');
+                        div.className = "datagrid-cell cell-" + this.column.name;
+                        div.innerHTML = this.column.value || "";
+                        this.fragment.appendChild(div);
+                    }
+
+                    el.rowIndex    = rowIndex;
+                    el.columnIndex = colIndex;
+                    this.fragment.firstElementChild.innerHTML = value;
+                    el.appendChild(this.fragment);
+                }
+            };
+
+            return renderer;
+        })();
+        /**
+         * DataGrid表头列渲染类
+         */
+        var CellHeaderRender = (function () {
+            var headerRender = function (column) {
+                CellRender.call(this, column);
+            };
+
+            headerRender.prototype = Object.create(CellRender.prototype);
+            headerRender.prototype.contructor = headerRender;
+            headerRender.fn = headerRender.prototype;
+            /**
+             * 渲染header部分
+             * @param  {Element} el
+             * @param  {String}  value
+             * @return {Boolean}
+             */
+            headerRender.fn.render = function (el, value) {
+                if (!el) return false;
+
+                let eleName = document.createElement('span'),
+                    eleSort = document.createElement('span'),
+                    colWrap;
+                eleSort.className = "datagrid-sort-icon";
+                eleName.innerHTML = value || "";
+
+                colWrap = this.fragment.firstElementChild;
+                // Set the width of the column
+                if ( this.column.cellWidth ) {
+                    let style = document.getElementsByTagName( 'style' ),
+                        className = "cell-" + this.column.name.toLowerCase();
+
+                    if ( style.length <= 0 ) {
+                        let css  = document.createElement( 'style' );
+                        css.type = "text/css"; 
+                        css.text = "." + className 
+                                 + "{width: " + this.column.cellWidth + "px}";
+                        document.head.appendChild( css );         
+                    }
+
+                    style[0].textContent += "." + className
+                               + "{width: " + this.column.cellWidth + "px}";
+                    colWrap.classList.add( className );           
+                }
+
+                colWrap.appendChild(eleName);
+                colWrap.appendChild(eleSort);
+                el.appendChild(this.fragment);
+
+                return true;
+            }
+
+            return headerRender;
+        })();
+
+        /* var grid = new DataGrid({
+
+        }); */
+
+        window.onload = function () { 
+            /* var cell = new CellRender({title: "Item 1", field: "user_id", columnIndex: 0});
+            var cellHeader = new CellHeaderRender({title: "Item 2", field: "user_id", columnIndex: 0});
+            cellHeader.render(document.body, "130283"); */
+
+            var metadata = [];
+            metadata.push({ name: "name", label: "NAME", datatype: "string", editable: true, width: 60 });
+            metadata.push({ name: "firstname", label: "FIRSTNAME", datatype: "string", editable: true, width: 79 });
+            metadata.push({ name: "age", label: "AGE", datatype: "integer", editable: true, width: 50 });
+            metadata.push({ name: "height", label: "HEIGHT", datatype: "double(m,2)", editable: true, width: 60 });
+            metadata.push({ name: "country", label: "COUNTRY", datatype: "string", editable: true, width: 70 });
+            metadata.push({ name: "email", label: "EMAIL", datatype: "email", editable: true, width: 90 });
+            metadata.push({ name: "freelance", label: "FREELANCE", datatype: "boolean", editable: true, width: 60 });
+            metadata.push({ name: "lastvisit", label: "LAST VISIT", datatype: "date", editable: true, width: 60 });
+
+            var data = [];
+            data.push({ id: 1, values: { "country": "uk", "age": 33, "name": "Duke", "firstname": "Patience", "height": 1.842, "email": "patience.duke@gmail.com", "lastvisit": "11\/12\/2002" } });
+            data.push({ id: 3, values: { "name": "Dujardin", "firstname": "Antoine", "age": 21, "height": 1.73, "country": "fr", "email": "felix.compton@yahoo.fr", "freelance": true, "lastvisit": "21\/02\/1999" } });
+            data.push({ id: 4, values: { "name": "Conway", "firstname": "Coby", "age": 47, "height": 1.96, "country": "za", "email": "coby@conwayinc.com", "freelance": true, "lastvisit": "01\/12\/2007" } });
+            data.push({ id: 5, values: { "name": "Shannon", "firstname": "Rana", "age": 24, "height": 1.56, "country": "nl", "email": "ranna.shannon@hotmail.com", "freelance": false, "lastvisit": "07\/10\/2009" } });
+            data.push({ id: 6, values: { "name": "Benton", "firstname": "Jasmine", "age": 61, "height": 1.71, "country": "ca", "email": "jasmine.benton@yahoo.com", "freelance": false, "lastvisit": "13\/01\/2009" } });
+            data.push({ id: 7, values: { "name": "Belletoise", "firstname": "André", "age": 31, "height": 1.84, "country": "be", "email": "belletoise@kiloutou.be", "freelance": true, "lastvisit": "" } });
+            data.push({ id: 8, values: { "name": "Santa-Maria", "firstname": "Martin", "age": 37, "height": 1.80, "country": "br", "email": "martin.sm@gmail.com", "freelance": false, "lastvisit": "12\/06\/1995" } });
+            data.push({ id: 9, values: { "name": "Dieumerci", "firstname": "Amédé", "age": 37, "height": 1.81, "country": "ng", "email": "dieumerci@gmail.com", "freelance": true, "lastvisit": "05\/07\/2009" } });
+            data.push({ id: 10, values: { "name": "Morin", "firstname": "Wanthus", "age": 46, "height": 1.77, "country": "zw", "email": "morin.x@yahoo.jsdata.com", "freelance": false, "lastvisit": "04\/03\/2004" } });
+
+            var grid = new DataGrid();
+            grid.load({ "metadata": metadata, "data": data });
+            grid.renderGrid( "grid-container", "" );
+        }
+    </script>
+</body>
+
+</html>
